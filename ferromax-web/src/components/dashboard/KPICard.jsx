@@ -33,7 +33,7 @@ const config = {
   },
 }
 
-export default function KPICard({ titulo, valor, subtitulo, color = 'gris', Icono, staggerIndex = 0 }) {
+export default function KPICard({ titulo, valor, subtitulo, color = 'gris', Icono, staggerIndex = 0, onClick }) {
   const c = config[color] ?? config.gris
 
   return (
@@ -41,7 +41,8 @@ export default function KPICard({ titulo, valor, subtitulo, color = 'gris', Icon
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: staggerIndex * 0.08, ease: [0.23, 1, 0.32, 1] }}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200 p-5"
+      onClick={onClick}
+      className={`bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200 p-5 ${onClick ? 'cursor-pointer active:scale-[0.98]' : ''}`}
     >
       <div className="flex items-start justify-between gap-3 mb-4">
         {Icono && (
