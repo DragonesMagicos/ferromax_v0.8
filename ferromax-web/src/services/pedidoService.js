@@ -1,9 +1,9 @@
 import api from './api'
 
 const pedidoService = {
-  async crear(items) {
+  async crear(items, medioPago = 'EFECTIVO') {
     const payload = {
-      medioPago: 'EFECTIVO',
+      medioPago,
       clienteId: null,
       items: items.map((i) => ({
         productoId: Number(i.producto.id),
