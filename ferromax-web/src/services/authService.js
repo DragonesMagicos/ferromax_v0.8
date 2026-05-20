@@ -41,6 +41,14 @@ const authService = {
   estaAutenticado() {
     return !!localStorage.getItem(TOKEN_KEY)
   },
+
+  async cambiarPassword(passwordActual, passwordNueva) {
+    const { data } = await api.put('/auth/cambiar-password', {
+      passwordActual,
+      passwordNueva,
+    })
+    return data
+  },
 }
 
 export default authService
