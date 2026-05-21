@@ -101,6 +101,11 @@ export default function DashboardPage() {
 
   useEffect(() => { cargarDatos() }, [location.key, cargarDatos])
 
+  useEffect(() => {
+    const intervalo = setInterval(cargarDatos, 5 * 60 * 1000)
+    return () => clearInterval(intervalo)
+  }, [cargarDatos])
+
   const saludo = () => {
     const h = new Date().getHours()
     if (h < 12) return 'Buenos días'
