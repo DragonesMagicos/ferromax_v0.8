@@ -70,6 +70,13 @@ public class Producto {
     @Column(name = "codigo_barras", length = 100, unique = true)
     private String codigoBarras;
 
+    @Column(precision = 10, scale = 3)
+    private BigDecimal peso;
+
+    @Size(max = 20)
+    @Column(name = "unidad_medida", length = 20)
+    private String unidadMedida;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "categoria_id",
                 foreignKey = @ForeignKey(name = "fk_productos_categoria"))
