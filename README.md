@@ -1,6 +1,6 @@
 # Ferromax ERP
 
-Sistema ERP para ferretería con módulos de ventas, inventario, POS y tienda online.
+Sistema  ERP para ferretería con módulos de ventas, inventario, POS y tienda online.
 
 ## Stack tecnológico
 
