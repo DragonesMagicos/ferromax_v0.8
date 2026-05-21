@@ -13,6 +13,13 @@ const catalogoService = {
     const { data } = await axiosClient.get('/categorias/productos', { params })
     return data
   },
+
+  async buscarProductos(termino, { page = 0, size = 24 } = {}) {
+    const { data } = await axiosClient.get('/productos/buscar', {
+      params: { q: termino, page, size },
+    })
+    return data
+  },
 }
 
 export default catalogoService
