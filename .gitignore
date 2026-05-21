@@ -1,0 +1,36 @@
+# Maven
+target/
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Spring Boot
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
+.agents/
+
+# Imágenes y videos de productos (descargar por separado)
+ferromax-web/public/img/
+
+ferromax-web/public/*.jpg
+img/
+
+# Scripts internos
+download-images.ps1
+procesar_imagenes.py
+raiz.txt
+reclasificar.sql
+skills-lock.json
