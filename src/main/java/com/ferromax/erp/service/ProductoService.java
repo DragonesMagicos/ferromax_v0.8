@@ -105,38 +105,6 @@ public class ProductoService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProductoPublicoDTO> listarPorCategoria(Long categoriaId) {
-        return productoRepository.findAllByActivoTrue().stream()
-                .filter(p -> p.getCategoria() != null && p.getCategoria().getId().equals(categoriaId))
-                .filter(p -> p.getStockActual() > 0)
-                .map(p -> new ProductoPublicoDTO(
-                        p.getId(),
-                        p.getNombre(),
-                        p.getPrecio(),
-                        p.getStockActual(),
-                        p.getImagenUrl(),
-                        p.getCategoria().getNombre()))
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ProductoPublicoDTO> buscarPorNombre(String termino) {
-        String terminoLower = termino.toLowerCase();
-        return productoRepository.findAllByActivoTrue().stream()
-                .filter(p -> p.getNombre().toLowerCase().contains(terminoLower)
-                        || (p.getDescripcion() != null && p.getDescripcion().toLowerCase().contains(terminoLower)))
-                .filter(p -> p.getStockActual() > 0)
-                .map(p -> new ProductoPublicoDTO(
-                        p.getId(),
-                        p.getNombre(),
-                        p.getPrecio(),
-                        p.getStockActual(),
-                        p.getImagenUrl(),
-                        p.getCategoria() != null ? p.getCategoria().getNombre() : null))
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
     public List<ProductoDTO> obtenerStockCritico() {
         return productoRepository.findProductosConStockCritico()
                 .stream()

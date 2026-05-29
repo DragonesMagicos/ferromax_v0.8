@@ -18,6 +18,10 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Variables de entorno (contienen claves secretas)
+.env
+.env.local
+
 # Claude Code
 .claude/
 .agents/
@@ -34,3 +38,5 @@ procesar_imagenes.py
 raiz.txt
 reclasificar.sql
 skills-lock.json
+
+ferromax-web/public/img.zip

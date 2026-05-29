@@ -10,6 +10,7 @@ import POS from './pages/POS'
 import RecepcionPage from './pages/RecepcionPage'
 import RemitosPage from './pages/RemitosPage'
 import AjusteStockPage from './pages/AjusteStockPage'
+import IngresoFacturaPage from './pages/IngresoFacturaPage'
 import Tienda from './pages/Tienda'
 import TiendaLogin from './pages/TiendaLogin'
 import TiendaConfirmacion from './pages/TiendaConfirmacion'
@@ -41,6 +42,11 @@ export default function App() {
           <Route path="/ajuste-stock" element={
             <ProtectedRoute requiereAdmin>
               <AjusteStockPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/ingreso-factura" element={
+            <ProtectedRoute requiereAdmin>
+              <IngresoFacturaPage />
             </ProtectedRoute>
           } />
           <Route path="/" element={

@@ -51,10 +51,6 @@ public class Proveedor {
             columnDefinition = "NUMERIC(12,2)")
     private BigDecimal lineaCredito;
 
-    @Size(max = 255)
-    @Column(name = "sitio_web", length = 255)
-    private String sitioWeb;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false,
             columnDefinition = "TIMESTAMPTZ")

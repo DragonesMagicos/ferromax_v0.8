@@ -31,10 +31,6 @@ public class Categoria {
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
-    @Size(max = 500)
-    @Column(name = "imagen_url", length = 500)
-    private String imagenUrl;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false,
             columnDefinition = "TIMESTAMPTZ")

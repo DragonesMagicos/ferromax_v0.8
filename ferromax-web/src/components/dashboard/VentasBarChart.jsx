@@ -34,8 +34,8 @@ export default function VentasBarChart({ datos = [] }) {
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
         <XAxis dataKey="dia" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
         <YAxis tickFormatter={formatearEje} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={48} />
-        <Tooltip content={<TooltipPersonalizado />} cursor={{ fill: '#fff0eb' }} />
-        <Bar dataKey="total" fill="#FF6B35" radius={[4, 4, 0, 0]} />
+        <Tooltip content={<TooltipPersonalizado />} cursor={{ fill: '#ede9fe' }} />
+        <Bar dataKey="total" fill="#7C3AED" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

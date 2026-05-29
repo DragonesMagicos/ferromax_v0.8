@@ -2,16 +2,17 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, ShoppingCart, Package,
-  CreditCard, Truck, LogOut, Wrench, ClipboardList, SlidersHorizontal,
+  CreditCard, Truck, LogOut, Wrench, ClipboardList, SlidersHorizontal, ScanLine,
 } from 'lucide-react'
 
 const LINKS_ADMIN = [
-  { to: '/',              label: 'Dashboard',      Icono: LayoutDashboard    },
-  { to: '/pos',           label: 'POS',            Icono: ShoppingCart       },
-  { to: '/productos',     label: 'Productos',      Icono: Package            },
-  { to: '/ventas',        label: 'Ventas',         Icono: CreditCard         },
-  { to: '/remitos',       label: 'Remitos',        Icono: ClipboardList      },
-  { to: '/ajuste-stock',  label: 'Ajuste stock',   Icono: SlidersHorizontal  },
+  { to: '/',               label: 'Dashboard',       Icono: LayoutDashboard    },
+  { to: '/pos',            label: 'POS',             Icono: ShoppingCart       },
+  { to: '/productos',      label: 'Productos',       Icono: Package            },
+  { to: '/ventas',         label: 'Ventas',          Icono: CreditCard         },
+  { to: '/remitos',        label: 'Remitos',         Icono: ClipboardList      },
+  { to: '/ajuste-stock',   label: 'Ajuste stock',    Icono: SlidersHorizontal  },
+  { to: '/ingreso-factura',label: 'Ingreso factura', Icono: ScanLine           },
 ]
 
 const LINKS_EMPLEADO = [

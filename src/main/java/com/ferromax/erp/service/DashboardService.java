@@ -27,7 +27,6 @@ import java.util.List;
 public class DashboardService {
 
     private static final ZoneId ZONA_AR = ZoneId.of("America/Argentina/Buenos_Aires");
-    private static final int DIAS_SEMANA = 7;
     private static final List<EstadoPedidoEnum> ESTADOS_ACTIVOS =
             List.of(EstadoPedidoEnum.PENDIENTE, EstadoPedidoEnum.CONFIRMADO);
 
@@ -61,7 +60,7 @@ public class DashboardService {
         List<VentaDiariaDTO> resultado = new ArrayList<>();
         LocalDate hoy = LocalDate.now(ZONA_AR);
 
-        for (int i = DIAS_SEMANA - 1; i >= 0; i--) {
+        for (int i = 6; i >= 0; i--) {
             LocalDate dia = hoy.minusDays(i);
             OffsetDateTime inicio = dia.atStartOfDay(ZONA_AR).toOffsetDateTime();
             OffsetDateTime fin = dia.plusDays(1).atStartOfDay(ZONA_AR).toOffsetDateTime();

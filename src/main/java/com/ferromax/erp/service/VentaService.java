@@ -65,17 +65,10 @@ public class VentaService {
         }
 
         // PASO 2 — Crear la venta
-        MedioPagoEnum medioPago;
-        try {
-            medioPago = MedioPagoEnum.valueOf(request.medioPago());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Medio de pago inválido: " + request.medioPago());
-        }
-
         Venta venta = new Venta();
         venta.setEstado(EstadoVentaEnum.COMPLETADA);
         venta.setOrigen(origen);
-        venta.setMedioPago(medioPago);
+        venta.setMedioPago(MedioPagoEnum.valueOf(request.medioPago()));
         venta.setCajero(usuarioRepository.findById(cajeroId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario", cajeroId)));
 
