@@ -76,7 +76,7 @@ export default function TiendaLoginPage() {
           </div>
           <span className="text-2xl font-black text-white tracking-tight"
             style={{ fontFamily: "'Rajdhani', sans-serif" }}>
-            FERRE<span className="text-[#FF6B35]">MAX</span>
+            FERRO<span className="text-[#FF6B35]">MAX</span>
           </span>
         </motion.div>
 
@@ -147,7 +147,7 @@ export default function TiendaLoginPage() {
             </div>
             <span className="text-xl font-black text-[#1A1A2E] tracking-tight"
               style={{ fontFamily: "'Rajdhani', sans-serif" }}>
-              FERRE<span className="text-[#FF6B35]">MAX</span>
+              FERRO<span className="text-[#FF6B35]">MAX</span>
             </span>
           </Link>
 

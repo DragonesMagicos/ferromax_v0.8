@@ -36,7 +36,7 @@ export default function Sidebar() {
           </div>
           <div>
             <p className="text-white font-black text-base tracking-tight" style={{ fontFamily: "'Rajdhani', sans-serif" }}>
-              FERRE<span className="text-[#FF6B35]">MAX</span>
+              FERRO<span className="text-[#FF6B35]">MAX</span>
             </p>
             <p className="text-[10px] text-white/25 uppercase tracking-widest">Sistema ERP</p>
           </div>
