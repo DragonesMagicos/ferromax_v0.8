@@ -30,4 +30,12 @@ export default defineConfig({
       },
     },
   },
+
+  test: {
+    environment: 'jsdom',
+    env: {
+      // Solo se usa durante "vitest run" — no afecta tu .env real de dev/producción
+      VITE_API_URL: 'http://localhost:3000',
+    },
+  },
 })
