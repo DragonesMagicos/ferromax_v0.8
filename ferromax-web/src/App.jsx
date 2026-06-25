@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
+import { CarritoProvider } from './context/CarritoContext'
 import ProtectedRoute from './components/PrivateRoute'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
@@ -23,6 +24,7 @@ export default function App() {
     <>
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <AuthProvider>
+      <CarritoProvider>
         <Routes>
           {/* Rutas públicas */}
           <Route path="/login" element={<LoginPage />} />
@@ -80,6 +82,7 @@ export default function App() {
           {/* Fallback: ADMIN → dashboard, EMPLEADO → POS */}
           <Route path="*" element={<Navigate to="/pos" replace />} />
         </Routes>
+      </CarritoProvider>
       </AuthProvider>
     </>
   )
