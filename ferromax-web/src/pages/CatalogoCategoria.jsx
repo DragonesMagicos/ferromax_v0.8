@@ -3,7 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Package, RefreshCw, ChevronLeft, ChevronRight, Filter, X, ShoppingCart } from 'lucide-react'
 import NavbarPublico from '../components/NavbarPublico'
+import CarritoDrawer from '../components/tienda/CarritoDrawer'
+import PagoModal from '../components/tienda/PagoModal'
 import catalogoService from '../services/catalogoService'
+import pedidoService from '../services/pedidoService'
+import { useCarrito } from '../context/CarritoContext'
+import { useAuth } from '../context/AuthContext'
 
 const DISP_CONFIG = {
   'STOCK ALTO':  { label: 'Stock alto',  bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
@@ -26,7 +31,7 @@ function formatPesos(n) {
   return Number(n ?? 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 })
 }
 
-function TarjetaProducto({ producto }) {
+function TarjetaProducto({ producto, onAgregar }) {
   const sinStock = producto.disponibilidad === 'SIN STOCK'
   const cardRef = useRef(null)
   const isHoverDevice = typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches
@@ -100,6 +105,7 @@ function TarjetaProducto({ producto }) {
       {/* Botón */}
       <button
         disabled={sinStock}
+        onClick={() => !sinStock && onAgregar(producto)}
         className={`w-full py-3 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
           sinStock
             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -219,6 +225,9 @@ export default function CatalogoCategoria() {
   const { categoria } = useParams()
   const nombreCategoria = decodeURIComponent(categoria ?? '')
   const navigate = useNavigate()
+  const { usuario } = useAuth()
+  const { carrito, drawerAbierto, setDrawerAbierto, agregarAlCarrito, cambiarCantidad, eliminarItem, limpiarCarrito, totalItems } = useCarrito()
+  const [modalPagoAbierto, setModalPagoAbierto] = useState(false)
 
   const [pagina, setPagina]           = useState({ contenido: [], paginaActual: 0, totalPaginas: 0, totalElementos: 0 })
   const [subcats, setSubcats]         = useState([])
@@ -354,7 +363,7 @@ export default function CatalogoCategoria() {
                     className="grid grid-cols-2 sm:grid-cols-3 gap-4"
                   >
                     {productosFiltrados.map((p) => (
-                      <TarjetaProducto key={p.id} producto={p} />
+                      <TarjetaProducto key={p.id} producto={p} onAgregar={agregarAlCarrito} />
                     ))}
                   </motion.div>
                   <Paginacion
@@ -405,6 +414,49 @@ export default function CatalogoCategoria() {
       <footer className="bg-[#1A1A2E] text-gray-400 text-center text-xs py-6 mt-16">
         © 2026 Ferromax S.R.L. — Todos los derechos reservados.
       </footer>
+
+      {/* Botón flotante del carrito */}
+      {totalItems > 0 && (
+        <button
+          onClick={() => setDrawerAbierto(true)}
+          className="fixed bottom-6 right-6 z-40 bg-[#FF6B35] hover:bg-[#e55a2b] text-white rounded-full shadow-lg px-5 py-3 flex items-center gap-2 font-semibold text-sm transition-colors"
+        >
+          <ShoppingCart size={18} />
+          Ver carrito ({totalItems})
+        </button>
+      )}
+
+      <AnimatePresence>
+        {drawerAbierto && (
+          <CarritoDrawer
+            items={carrito}
+            onCerrar={() => setDrawerAbierto(false)}
+            onCambiarCantidad={cambiarCantidad}
+            onEliminar={eliminarItem}
+            onPagar={() => {
+              if (!usuario) { setDrawerAbierto(false); navigate('/tienda/login'); return }
+              setDrawerAbierto(false)
+              setModalPagoAbierto(true)
+            }}
+            pagando={false}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {modalPagoAbierto && (
+          <PagoModal
+            total={carrito.reduce((a, i) => a + i.subtotal, 0)}
+            onCerrar={() => { setModalPagoAbierto(false); setDrawerAbierto(true) }}
+            onProcesar={(medioPago) => pedidoService.crear(carrito, medioPago)}
+            onPagoExitoso={() => {
+              setModalPagoAbierto(false)
+              limpiarCarrito()
+              navigate('/tienda/confirmacion')
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
