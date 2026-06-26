@@ -7,5 +7,7 @@ public record FacturaConfirmarRequest(
         String notas,
         Long facturaId,
         String proveedor,
-        String nroFactura
+        String nroFactura,
+        Long proveedorId,
+        String cuitProveedor
 ) {}

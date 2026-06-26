@@ -4,6 +4,7 @@ import com.ferromax.erp.dto.ProductoCreateRequest;
 import com.ferromax.erp.dto.ProductoDTO;
 import com.ferromax.erp.dto.ProductoEmpleadoDTO;
 import com.ferromax.erp.dto.ProductoPublicoDTO;
+import com.ferromax.erp.dto.ProductoRapidoRequest;
 import com.ferromax.erp.dto.ProductoUpdateRequest;
 import com.ferromax.erp.service.ProductoService;
 import jakarta.validation.Valid;
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/productos")
@@ -35,6 +38,20 @@ public class ProductoController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ProductoDTO>> listarTodos() {
         return ResponseEntity.ok(productoService.listarTodos());
+    }
+
+    @GetMapping("/buscar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Map<String, Object>>> buscar(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "8") int limit) {
+        return ResponseEntity.ok(productoService.buscarPorTexto(q, limit));
+    }
+
+    @GetMapping("/imagenes")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<String>> buscarImagenes(@RequestParam String q) {
+        return ResponseEntity.ok(productoService.buscarImagenes(q));
     }
 
     @GetMapping("/{id}")
@@ -73,6 +90,19 @@ public class ProductoController {
     @PreAuthorize("hasRole('EMPLEADO')")
     public ResponseEntity<ProductoEmpleadoDTO> buscarPorCodigoBarrasEmpleado(@PathVariable String codigo) {
         return ResponseEntity.ok(productoService.buscarPorCodigoBarrasParaEmpleado(codigo));
+    }
+
+    @PostMapping("/empleado/rapido")
+    @PreAuthorize("hasRole('EMPLEADO')")
+    public ResponseEntity<ProductoEmpleadoDTO> crearRapido(@Valid @RequestBody ProductoRapidoRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(productoService.crearRapidoDesdeRecepcion(request));
+    }
+
+    @GetMapping("/empleado/imagenes")
+    @PreAuthorize("hasRole('EMPLEADO')")
+    public ResponseEntity<List<String>> buscarImagenesEmpleado(@RequestParam String q) {
+        return ResponseEntity.ok(productoService.buscarImagenes(q));
     }
 
     @GetMapping("/stock-critico")

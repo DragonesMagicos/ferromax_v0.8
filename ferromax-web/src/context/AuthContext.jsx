@@ -31,7 +31,7 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const logout = useCallback((redirigirA = '/login') => {
+  const logout = useCallback((redirigirA = '/admin/login') => {
     authService.logout()
     setUsuario(null)
     setToken(null)

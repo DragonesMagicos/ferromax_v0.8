@@ -49,13 +49,19 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,  "/categorias/**").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/img/**").permitAll()
 
-                // Solo ADMIN
-                .requestMatchers(HttpMethod.GET,  "/dashboard/**").hasRole("ADMIN")
+                // Webhook de pasarela — sin JWT (autenticación por HMAC en el controller)
+                .requestMatchers(HttpMethod.POST, "/webhook/pago").permitAll()
+
+                // Solo ADMIN — cubre todos los métodos HTTP, no solo GET
+                .requestMatchers("/dashboard/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET,  "/ventas").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET,  "/ventas/mis-compras").hasRole("CLIENTE")
                 .requestMatchers(HttpMethod.GET,  "/ventas/mis-ventas-hoy").hasRole("EMPLEADO")
                 .requestMatchers(HttpMethod.PUT,  "/ventas/{id}/anular").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET,  "/alertas/**").hasRole("ADMIN")
+
+                // Clientes — solo ADMIN
+                .requestMatchers("/clientes/**").hasRole("ADMIN")
 
                 // Proveedores — lista para EMPLEADO (solo GET), gestión completa para ADMIN
                 .requestMatchers(HttpMethod.GET,  "/proveedores").hasAnyRole("ADMIN", "EMPLEADO")

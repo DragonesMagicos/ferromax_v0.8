@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import authService from '../services/authService'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -10,6 +10,10 @@ const ease = [0.23, 1, 0.32, 1]
 export default function TiendaLoginPage() {
   const { login, usuario, cargando } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const hayCarritoPendiente = !!location.state?.comprarDespues ||
+    JSON.parse(localStorage.getItem('ferromax_carrito') || '[]').length > 0
 
   const [modo, setModo]     = useState('login')
   const [form, setForm]     = useState({ nombre: '', apellido: '', email: '', password: '' })
@@ -19,8 +23,12 @@ export default function TiendaLoginPage() {
   const [focusedField, setFocusedField] = useState(null)
 
   useEffect(() => {
-    if (!cargando && usuario) navigate('/tienda', { replace: true })
+    if (!cargando && usuario) {
+      navigate('/tienda', { replace: true, state: hayCarritoPendiente ? { comprarAhora: true } : {} })
+    }
   }, [usuario, cargando, navigate])
+
+  const destino = () => navigate('/tienda', { replace: true, state: hayCarritoPendiente ? { comprarAhora: true } : {} })
 
   const set = (campo) => (e) => {
     setForm((f) => ({ ...f, [campo]: e.target.value }))
@@ -31,7 +39,7 @@ export default function TiendaLoginPage() {
     e.preventDefault()
     setLoading(true)
     const ok = await login(form.email, form.password)
-    if (ok) navigate('/tienda', { replace: true })
+    if (ok) destino()
     else { setError('Email o contraseña incorrectos.'); setLoading(false) }
   }
 
@@ -42,7 +50,7 @@ export default function TiendaLoginPage() {
     try {
       await authService.register({ nombre: form.nombre, apellido: form.apellido, email: form.email, password: form.password })
       const ok = await login(form.email, form.password)
-      if (ok) navigate('/tienda', { replace: true })
+      if (ok) destino()
     } catch (err) {
       setError(err.response?.data?.mensaje ?? 'No se pudo crear la cuenta.')
       setLoading(false)
@@ -76,7 +84,7 @@ export default function TiendaLoginPage() {
           </div>
           <span className="text-2xl font-black text-white tracking-tight"
             style={{ fontFamily: "'Rajdhani', sans-serif" }}>
-            FERRO<span className="text-[#FF6B35]">MAX</span>
+            FERRE<span className="text-[#FF6B35]">MAX</span>
           </span>
         </motion.div>
 
@@ -147,7 +155,7 @@ export default function TiendaLoginPage() {
             </div>
             <span className="text-xl font-black text-[#1A1A2E] tracking-tight"
               style={{ fontFamily: "'Rajdhani', sans-serif" }}>
-              FERRO<span className="text-[#FF6B35]">MAX</span>
+              FERRE<span className="text-[#FF6B35]">MAX</span>
             </span>
           </Link>
 

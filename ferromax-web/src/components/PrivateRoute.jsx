@@ -13,13 +13,12 @@ export default function ProtectedRoute({ children, requiereAdmin = false, requie
   }
 
   if (!usuario) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/admin/login" replace />
   }
 
   if (requiereAdmin && !isAdmin()) {
-    // El empleado tiene su propia página de inicio
     if (isEmpleado()) return <Navigate to="/pos" replace />
-    return <Navigate to="/login" replace />
+    return <Navigate to="/admin/login" replace />
   }
 
   if (requiereEmpleado && !isEmpleado()) {

@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import {
   FileText, UploadCloud, Loader2, CheckCircle2, AlertCircle,
   Trash2, Link2, Link2Off, ChevronDown, Package, Clock, Building2,
+  ShieldCheck, ShieldAlert, Plus, ImageOff, X,
 } from 'lucide-react'
 
 function formatPesos(n) {
@@ -51,15 +52,8 @@ function SelectorProducto({ itemIdx, onSeleccionar }) {
     if (q.trim().length < 2) { setProductos([]); return }
     setCargando(true)
     try {
-      const todos = await productoService.listar()
-      setProductos(
-        todos
-          .filter(p => p.activo !== false && (
-            p.nombre.toLowerCase().includes(q.toLowerCase()) ||
-            p.sku.toLowerCase().includes(q.toLowerCase())
-          ))
-          .slice(0, 8)
-      )
+      const resultados = await productoService.buscar(q)
+      setProductos(resultados)
     } catch {
       toast.error('Error al buscar productos')
     } finally {
@@ -132,6 +126,171 @@ function SelectorProducto({ itemIdx, onSeleccionar }) {
   )
 }
 
+// ── Modal crear producto ──────────────────────────────────────────────────────
+function ModalCrearProducto({ item, onCreado, onCerrar }) {
+  const [nombre, setNombre]         = useState(item.descripcion ?? '')
+  const [sku, setSku]               = useState(item.codigoSku ?? '')
+  const [precio, setPrecio]         = useState(item.precioUnitario ?? '')
+  const [categorias, setCategorias] = useState([])
+  const [categoriaId, setCategoriaId] = useState('')
+  const [imagenes, setImagenes]     = useState([])
+  const [imgSel, setImgSel]         = useState(null)
+  const [buscando, setBuscando]     = useState(false)
+  const [creando, setCreando]       = useState(false)
+
+  useEffect(() => {
+    import('../services/api').then(({ default: api }) => {
+      api.get('/categorias/admin').then(r => {
+        setCategorias(r.data)
+        if (r.data.length) setCategoriaId(String(r.data[0].id))
+      }).catch(() => {})
+    })
+    if (!nombre || nombre.length < 3) return
+    setBuscando(true)
+    productoService.buscarImagenes(nombre)
+      .then(urls => { setImagenes(urls); if (urls.length) setImgSel(urls[0]) })
+      .catch(() => toast.error('No se pudieron cargar imágenes'))
+      .finally(() => setBuscando(false))
+  }, [])
+
+  const handleCrear = async () => {
+    if (!nombre.trim() || !sku.trim()) {
+      toast.error('Nombre y SKU son obligatorios')
+      return
+    }
+    if (!categoriaId) {
+      toast.error('Seleccioná una categoría')
+      return
+    }
+    setCreando(true)
+    try {
+      const nuevo = await productoService.crear({
+        nombre: nombre.trim(),
+        sku: sku.trim().toUpperCase(),
+        precio: parseFloat(precio) || 0,
+        precioCompra: parseFloat(precio) || 0,
+        imagenUrl: imgSel ?? null,
+        stockMinimo: 1,
+        categoriaId: parseInt(categoriaId),
+      })
+      toast.success(`Producto "${nuevo.nombre}" creado`)
+      onCreado(nuevo)
+    } catch (err) {
+      toast.error(err.response?.data?.mensaje ?? 'Error al crear el producto')
+    } finally {
+      setCreando(false)
+    }
+  }
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+        onClick={e => e.target === e.currentTarget && onCerrar()}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 16 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
+                <Plus size={15} className="text-violet-600" />
+              </div>
+              <p className="font-bold text-gray-800 text-sm">Crear nuevo producto</p>
+            </div>
+            <button onClick={onCerrar} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {/* Campos */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Nombre *</label>
+                <input value={nombre} onChange={e => setNombre(e.target.value)}
+                  className="w-full bg-[#F8F9FA] border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">SKU *</label>
+                <input value={sku} onChange={e => setSku(e.target.value)}
+                  className="w-full bg-[#F8F9FA] border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Precio unitario</label>
+                <input type="number" min="0" step="0.01" value={precio} onChange={e => setPrecio(e.target.value)}
+                  className="w-full bg-[#F8F9FA] border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400" />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Categoría *</label>
+                <select value={categoriaId} onChange={e => setCategoriaId(e.target.value)}
+                  className="w-full bg-[#F8F9FA] border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400">
+                  {categorias.length === 0 && <option value="">Cargando…</option>}
+                  {categorias.map(c => (
+                    <option key={c.id} value={String(c.id)}>{c.nombre}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Imágenes */}
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                Elegí una imagen
+              </label>
+              {buscando ? (
+                <div className="flex items-center justify-center gap-2 py-6 bg-gray-50 rounded-xl text-gray-400 text-xs">
+                  <Loader2 size={14} className="animate-spin" /> Buscando imágenes…
+                </div>
+              ) : imagenes.length === 0 ? (
+                <div className="flex items-center justify-center gap-2 py-6 bg-gray-50 rounded-xl text-gray-400 text-xs">
+                  <ImageOff size={14} /> No se encontraron imágenes
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 gap-2">
+                  {imagenes.map((url, i) => (
+                    <button key={i} onClick={() => setImgSel(url)}
+                      className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${imgSel === url ? 'border-violet-500 ring-2 ring-violet-300' : 'border-gray-100 hover:border-gray-300'}`}
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover"
+                        onError={e => { e.target.parentElement.style.display = 'none' }} />
+                      {imgSel === url && (
+                        <div className="absolute inset-0 bg-violet-500/10 flex items-center justify-center">
+                          <CheckCircle2 size={20} className="text-violet-600 drop-shadow" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {imgSel && (
+                <p className="mt-1.5 text-[10px] text-gray-400 truncate">Imagen seleccionada: {imgSel}</p>
+              )}
+            </div>
+
+            {/* Botones */}
+            <div className="flex gap-3 pt-1">
+              <button onClick={onCerrar}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-sm font-bold hover:bg-gray-50 transition-colors">
+                Cancelar
+              </button>
+              <motion.button whileTap={{ scale: 0.97 }} onClick={handleCrear} disabled={creando}
+                className="flex-[2] py-2.5 rounded-xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                {creando ? <><Loader2 size={14} className="animate-spin" /> Creando…</> : <><Plus size={14} /> Crear producto</>}
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
+
 // ── Zona de drop ──────────────────────────────────────────────────────────────
 function ZonaDrop({ onArchivo }) {
   const [arrastrando, setArrastrando] = useState(false)
@@ -184,7 +343,7 @@ function ZonaDrop({ onArchivo }) {
 }
 
 // ── Tabla de items ────────────────────────────────────────────────────────────
-function TablaItems({ items, onChange, onEliminar, onVincular }) {
+function TablaItems({ items, onChange, onEliminar, onVincular, onCrear }) {
   const actualizarCampo = (idx, campo, valor) => {
     onChange(idx, { ...items[idx], [campo]: valor })
   }
@@ -241,10 +400,17 @@ function TablaItems({ items, onChange, onEliminar, onVincular }) {
               <td className="px-4 py-3">
                 <div className="flex flex-col gap-1">
                   <BadgeMatch productoId={item.productoId} productoNombre={item.productoNombre} codigoSku={item.codigoSku} />
-                  <SelectorProducto
-                    itemIdx={idx}
-                    onSeleccionar={(i, p) => onVincular(i, p)}
-                  />
+                  <div className="flex items-center gap-2">
+                    <SelectorProducto itemIdx={idx} onSeleccionar={(i, p) => onVincular(i, p)} />
+                    {!item.productoId && (
+                      <button
+                        onClick={() => onCrear(idx)}
+                        className="flex items-center gap-1 text-[11px] text-violet-600 hover:underline font-semibold"
+                      >
+                        <Plus size={10} /> Crear
+                      </button>
+                    )}
+                  </div>
                 </div>
               </td>
               <td className="px-4 py-3 text-right">
@@ -276,18 +442,21 @@ const BADGE_ESTADO = {
 }
 
 export default function IngresoFacturaPage() {
-  const [etapa, setEtapa]             = useState('upload')
-  const [archivo, setArchivo]         = useState(null)
-  const [analisis, setAnalisis]       = useState(null)
-  const [facturaId, setFacturaId]     = useState(null)
-  const [items, setItems]             = useState([])
-  const [proveedor, setProveedor]     = useState('')
-  const [nroFactura, setNroFactura]   = useState('')
-  const [notas, setNotas]             = useState('')
-  const [confirmando, setConfirmando] = useState(false)
-  const [resultados, setResultados]   = useState([])
-  const [historial, setHistorial]     = useState([])
+  const [etapa, setEtapa]               = useState('upload')
+  const [archivo, setArchivo]           = useState(null)
+  const [analisis, setAnalisis]         = useState(null)
+  const [facturaId, setFacturaId]       = useState(null)
+  const [items, setItems]               = useState([])
+  const [proveedor, setProveedor]       = useState('')
+  const [cuitProveedor, setCuitProveedor] = useState(null)
+  const [proveedorId, setProveedorId]   = useState(null)
+  const [nroFactura, setNroFactura]     = useState('')
+  const [notas, setNotas]               = useState('')
+  const [confirmando, setConfirmando]   = useState(false)
+  const [resultados, setResultados]     = useState([])
+  const [historial, setHistorial]       = useState([])
   const [cargandoHist, setCargandoHist] = useState(false)
+  const [modalCrear, setModalCrear]     = useState(null) // idx del item
 
   const cargarHistorial = useCallback(async () => {
     setCargandoHist(true)
@@ -310,6 +479,8 @@ export default function IngresoFacturaPage() {
       setFacturaId(res.facturaId ?? null)
       setItems(res.items ?? [])
       setProveedor(res.proveedor ?? '')
+      setCuitProveedor(res.cuitProveedor ?? null)
+      setProveedorId(res.proveedorId ?? null)
       setNroFactura(res.numeroFactura ?? '')
       if (res.numeroFactura) setNotas(`Factura N° ${res.numeroFactura}`)
       setEtapa('revision')
@@ -334,6 +505,11 @@ export default function IngresoFacturaPage() {
     ))
   }
 
+  const handleProductoCreado = (nuevoProducto) => {
+    vincularProducto(modalCrear, nuevoProducto)
+    setModalCrear(null)
+  }
+
   // Un ítem está listo si tiene productoId (vinculado manualmente) o codigoSku (para buscar por código)
   const tieneIdentificador = (it) => it.productoId || (it.codigoSku && it.codigoSku.trim())
   const sinVincular = items.filter(it => !tieneIdentificador(it)).length
@@ -350,7 +526,7 @@ export default function IngresoFacturaPage() {
         .filter(it => tieneIdentificador(it) && it.cantidad > 0)
         .map(it => ({ productoId: it.productoId ?? null, codigoSku: it.codigoSku ?? null, cantidad: it.cantidad, precioUnitario: it.precioUnitario }))
 
-      const res = await facturaService.confirmar({ items: payload, notas, facturaId, proveedor, nroFactura })
+      const res = await facturaService.confirmar({ items: payload, notas, facturaId, proveedor, nroFactura, proveedorId, cuitProveedor })
       setResultados(res)
       cargarHistorial()
       setEtapa('confirmado')
@@ -369,6 +545,8 @@ export default function IngresoFacturaPage() {
     setFacturaId(null)
     setItems([])
     setProveedor('')
+    setCuitProveedor(null)
+    setProveedorId(null)
     setNroFactura('')
     setNotas('')
     setResultados([])
@@ -465,9 +643,44 @@ export default function IngresoFacturaPage() {
                       value={proveedor}
                       onChange={e => setProveedor(e.target.value)}
                       placeholder="Nombre del proveedor…"
-                      className="w-full bg-[#F8F9FA] border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400 transition-colors"
+                      className={`w-full bg-[#F8F9FA] border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors ${
+                        proveedorId
+                          ? 'border-emerald-300 focus:ring-emerald-400/30 focus:border-emerald-400'
+                          : 'border-gray-200 focus:ring-violet-400/30 focus:border-violet-400'
+                      }`}
                     />
                   </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">CUIT del proveedor</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={cuitProveedor ?? ''}
+                        onChange={e => setCuitProveedor(e.target.value || null)}
+                        placeholder="xx-xxxxxxxx-x"
+                        className={`w-full bg-[#F8F9FA] border rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 transition-colors ${
+                          proveedorId
+                            ? 'border-emerald-300 focus:ring-emerald-400/30 focus:border-emerald-400'
+                            : 'border-gray-200 focus:ring-violet-400/30 focus:border-violet-400'
+                        }`}
+                      />
+                      {cuitProveedor && (
+                        <div className={`mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-lg w-fit ${
+                          proveedorId
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-amber-50 text-amber-700'
+                        }`}>
+                          {proveedorId
+                            ? <ShieldCheck size={11} />
+                            : <ShieldAlert size={11} />
+                          }
+                          <span>{proveedorId ? 'Proveedor registrado' : 'No registrado en el sistema'}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">N° de Factura</label>
                     <input
@@ -527,6 +740,7 @@ export default function IngresoFacturaPage() {
                     onChange={actualizarItem}
                     onEliminar={eliminarItem}
                     onVincular={vincularProducto}
+                    onCrear={idx => setModalCrear(idx)}
                   />
                 </div>
               </div>
@@ -673,6 +887,14 @@ export default function IngresoFacturaPage() {
 
         </div>
       </main>
+
+      {modalCrear !== null && items[modalCrear] && (
+        <ModalCrearProducto
+          item={items[modalCrear]}
+          onCreado={handleProductoCreado}
+          onCerrar={() => setModalCrear(null)}
+        />
+      )}
     </div>
   )
 }

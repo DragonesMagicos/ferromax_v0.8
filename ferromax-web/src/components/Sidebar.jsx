@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, ShoppingCart, Package,
-  CreditCard, Truck, LogOut, Wrench, ClipboardList, SlidersHorizontal, ScanLine,
+  CreditCard, Truck, LogOut, Wrench, ClipboardList, SlidersHorizontal, ScanLine, Building2, Users,
 } from 'lucide-react'
 
 const LINKS_ADMIN = [
@@ -13,6 +13,8 @@ const LINKS_ADMIN = [
   { to: '/remitos',        label: 'Remitos',         Icono: ClipboardList      },
   { to: '/ajuste-stock',   label: 'Ajuste stock',    Icono: SlidersHorizontal  },
   { to: '/ingreso-factura',label: 'Ingreso factura', Icono: ScanLine           },
+  { to: '/proveedores',    label: 'Proveedores',     Icono: Building2          },
+  { to: '/clientes',       label: 'Clientes',        Icono: Users              },
 ]
 
 const LINKS_EMPLEADO = [
@@ -36,7 +38,7 @@ export default function Sidebar() {
           </div>
           <div>
             <p className="text-white font-black text-base tracking-tight" style={{ fontFamily: "'Rajdhani', sans-serif" }}>
-              FERRO<span className="text-[#FF6B35]">MAX</span>
+              FERRE<span className="text-[#FF6B35]">MAX</span>
             </p>
             <p className="text-[10px] text-white/25 uppercase tracking-widest">Sistema ERP</p>
           </div>

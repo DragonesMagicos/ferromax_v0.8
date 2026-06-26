@@ -1,11 +1,9 @@
-import { useEffect, useState, useMemo, useRef } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
-import { useCarrito } from '../context/CarritoContext'
 import ProductoCard from '../components/tienda/ProductoCard'
 import CarritoDrawer from '../components/tienda/CarritoDrawer'
-import PagoModal from '../components/tienda/PagoModal'
 import CategoriasDestacadas from '../components/tienda/CategoriasDestacadas'
 import OfertasSemanales from '../components/tienda/OfertasSemanales'
 import Testimonios from '../components/tienda/Testimonios'
@@ -72,6 +70,7 @@ const CATALOGO_LINK = { label: 'Catálogo', to: '/catalogo' }
 
 export default function TiendaPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { usuario, logout } = useAuth()
   const productosRef = useRef(null)
 
@@ -79,9 +78,11 @@ export default function TiendaPage() {
   const [cargando, setCargando]           = useState(true)
   const [busqueda, setBusqueda]           = useState('')
   const [categoriaActiva, setCategoriaActiva] = useState('Todos')
-  const { carrito, drawerAbierto, setDrawerAbierto, agregarAlCarrito, cambiarCantidad, eliminarItem, limpiarCarrito, totalItems } = useCarrito()
+  const [carrito, setCarrito]             = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ferromax_carrito') || '[]') } catch { return [] }
+  })
+  const [drawerAbierto, setDrawerAbierto] = useState(false)
   const [pagando, setPagando]             = useState(false)
-  const [modalPagoAbierto, setModalPagoAbierto] = useState(false)
   const [scrolled, setScrolled]           = useState(false)
   const [menuMovil, setMenuMovil]         = useState(false)
   const [busquedaAbierta, setBusquedaAbierta] = useState(false)
@@ -110,6 +111,23 @@ export default function TiendaPage() {
   useEffect(() => {
     return () => clearTimeout(closeTimerRef.current)
   }, [])
+
+  useEffect(() => {
+    localStorage.setItem('ferromax_carrito', JSON.stringify(carrito))
+  }, [carrito])
+
+  useEffect(() => {
+    if (!location.state) return
+    if (location.state.abrirCarrito) {
+      window.history.replaceState({}, '')
+      setDrawerAbierto(true)
+    }
+    if (location.state.comprarAhora && usuario && carrito.length > 0) {
+      window.history.replaceState({}, '')
+      setDrawerAbierto(true)
+      handlePagar()
+    }
+  }, [location.state, usuario])
 
   useEffect(() => {
     productoService.listarPublico()
@@ -142,16 +160,62 @@ export default function TiendaPage() {
   const totalPaginas   = Math.ceil(productosFiltrados.length / porPagina)
   const productosPagina = productosFiltrados.slice((pagina - 1) * porPagina, pagina * porPagina)
 
-  const handlePagar = () => {
-    if (!usuario) { setDrawerAbierto(false); navigate('/tienda/login'); return }
-    setDrawerAbierto(false)
-    setModalPagoAbierto(true)
-  }
+  const agregarAlCarrito = useCallback((producto) => {
+    setCarrito((prev) => {
+      const existe = prev.find((i) => i.producto.id === producto.id)
+      if (existe) {
+        return prev.map((i) =>
+          i.producto.id === producto.id
+            ? { ...i, cantidad: i.cantidad + 1, subtotal: (i.cantidad + 1) * Number(i.producto.precio) }
+            : i
+        )
+      }
+      return [...prev, { producto, cantidad: 1, subtotal: Number(producto.precio) }]
+    })
+    toast.success(`${producto.nombre} agregado al carrito`, {
+      style: { borderRadius: '12px', background: '#1A1A2E', color: '#fff' },
+      iconTheme: { primary: '#FF6B35', secondary: '#fff' },
+    })
+  }, [])
 
-  const handlePagoExitoso = () => {
-    setModalPagoAbierto(false)
-    limpiarCarrito()
-    navigate('/tienda/confirmacion')
+  const cambiarCantidad = useCallback((productoId, nuevaCantidad) => {
+    if (nuevaCantidad <= 0) {
+      setCarrito((prev) => prev.filter((i) => i.producto.id !== productoId))
+      return
+    }
+    setCarrito((prev) =>
+      prev.map((i) =>
+        i.producto.id === productoId
+          ? { ...i, cantidad: nuevaCantidad, subtotal: nuevaCantidad * Number(i.producto.precio) }
+          : i
+      )
+    )
+  }, [])
+
+  const eliminarItem = useCallback((productoId) => {
+    setCarrito((prev) => prev.filter((i) => i.producto.id !== productoId))
+  }, [])
+
+  const totalItems = carrito.reduce((acc, i) => acc + i.cantidad, 0)
+
+  const handlePagar = async () => {
+    if (!usuario) {
+      setDrawerAbierto(false)
+      navigate('/tienda/login', { state: { comprarDespues: true } })
+      return
+    }
+    setPagando(true)
+    try {
+      await pedidoService.crear(carrito)
+      setCarrito([])
+      localStorage.removeItem('ferromax_carrito')
+      setDrawerAbierto(false)
+      navigate('/tienda/confirmacion')
+    } catch (err) {
+      toast.error(err.response?.data?.mensaje ?? 'Error al procesar el pedido')
+    } finally {
+      setPagando(false)
+    }
   }
 
   return (
@@ -833,17 +897,6 @@ export default function TiendaPage() {
             onEliminar={eliminarItem}
             onPagar={handlePagar}
             pagando={pagando}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {modalPagoAbierto && (
-          <PagoModal
-            total={carrito.reduce((a, i) => a + i.subtotal, 0)}
-            onCerrar={() => { setModalPagoAbierto(false); setDrawerAbierto(true) }}
-            onProcesar={(medioPago) => pedidoService.crear(carrito, medioPago)}
-            onPagoExitoso={handlePagoExitoso}
           />
         )}
       </AnimatePresence>

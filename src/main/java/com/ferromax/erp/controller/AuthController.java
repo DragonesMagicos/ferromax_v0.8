@@ -5,8 +5,10 @@ import com.ferromax.erp.dto.LoginResponse;
 import com.ferromax.erp.dto.RegisterRequest;
 import com.ferromax.erp.dto.UsuarioDTO;
 import com.ferromax.erp.exception.RecursoNoEncontradoException;
+import com.ferromax.erp.model.Cliente;
 import com.ferromax.erp.model.RolEnum;
 import com.ferromax.erp.model.Usuario;
+import com.ferromax.erp.repository.ClienteRepository;
 import com.ferromax.erp.repository.UsuarioRepository;
 import com.ferromax.erp.security.JwtTokenProvider;
 import jakarta.validation.Valid;
@@ -29,6 +31,7 @@ import java.util.Map;
 public class AuthController {
 
     private final UsuarioRepository usuarioRepository;
+    private final ClienteRepository clienteRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
@@ -60,6 +63,14 @@ public class AuthController {
         usuario.setActivo(true);
 
         usuarioRepository.save(usuario);
+
+        if (clienteRepository.findByEmail(request.email()).isEmpty()) {
+            Cliente cliente = new Cliente();
+            cliente.setNombre(request.nombre());
+            cliente.setApellido(request.apellido());
+            cliente.setEmail(request.email());
+            clienteRepository.save(cliente);
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of("mensaje", "Usuario registrado exitosamente"));

@@ -7,6 +7,7 @@ import com.ferromax.erp.dto.VentaDetalleResponse;
 import com.ferromax.erp.dto.VentaRequest;
 import com.ferromax.erp.dto.VentaResponse;
 import com.ferromax.erp.exception.RecursoNoEncontradoException;
+import com.ferromax.erp.exception.StockInsuficienteException;
 import com.ferromax.erp.model.Comprobante;
 import com.ferromax.erp.model.EstadoVentaEnum;
 import com.ferromax.erp.model.ItemVenta;
@@ -33,6 +34,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -51,18 +53,33 @@ public class VentaService {
     @Transactional
     public VentaDetalleResponse registrarVenta(VentaRequest request, Long cajeroId, OrigenVentaEnum origen) {
 
-        // PASO 1 — Verificar stock de todos los productos antes de tocar nada
-        List<Producto> productos = new ArrayList<>();
-        for (ItemVentaRequest item : request.items()) {
-            Producto producto = productoRepository.findById(item.productoId())
+        // PASO 1 — Adquirir locks pesimistas en orden ascendente de ID para evitar deadlocks,
+        //          luego validar y descontar stock de forma atómica dentro de la misma transacción.
+        List<ItemVentaRequest> itemsOrdenados = request.items().stream()
+                .sorted(Comparator.comparingLong(ItemVentaRequest::productoId))
+                .toList();
+
+        List<Producto> productosOrdenados = new ArrayList<>();
+        for (ItemVentaRequest item : itemsOrdenados) {
+            Producto producto = productoRepository.findByIdForUpdate(item.productoId())
                     .orElseThrow(() -> new RecursoNoEncontradoException("Producto", item.productoId()));
 
             if (producto.getStockActual() < item.cantidad()) {
-                throw new IllegalArgumentException("Stock insuficiente para: " + producto.getNombre());
+                throw new StockInsuficienteException(
+                        producto.getNombre(), producto.getStockActual(), item.cantidad());
             }
 
-            productos.add(producto);
+            // Descontar inmediatamente mientras el lock está activo
+            producto.setStockActual(producto.getStockActual() - item.cantidad());
+            productosOrdenados.add(producto);
         }
+
+        // Reordenar para que el resto del método conserve el orden original del request
+        List<Producto> productos = request.items().stream()
+                .map(item -> productosOrdenados.stream()
+                        .filter(p -> p.getId().equals(item.productoId()))
+                        .findFirst().orElseThrow())
+                .toList();
 
         // PASO 2 — Crear la venta
         Venta venta = new Venta();
@@ -103,13 +120,12 @@ public class VentaService {
         venta.setDescuento(BigDecimal.ZERO);
         venta.setTotal(total);
 
-        // PASO 4 — Descontar el stock con tipo VENTA y generar alertas si corresponde
+        // PASO 4 — Persistir stock (ya decrementado en PASO 1) y registrar movimientos
         for (int i = 0; i < items.size(); i++) {
             Producto producto = productos.get(i);
-            int stockAnterior = producto.getStockActual();
-            int nuevoStock = stockAnterior - items.get(i).cantidad();
+            int nuevoStock = producto.getStockActual();
+            int stockAnterior = nuevoStock + items.get(i).cantidad();
 
-            producto.setStockActual(nuevoStock);
             productoRepository.save(producto);
 
             MovimientoStock mov = new MovimientoStock();

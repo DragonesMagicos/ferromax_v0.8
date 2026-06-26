@@ -1,34 +1,42 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, Check, Tag, Clock, Package } from 'lucide-react'
-import axiosClient from '../../api/axiosClient'
+import { ShoppingCart, Check, Tag, Clock } from 'lucide-react'
+import productoService from '../../services/productoService'
 
 const BADGES = [
-  { label: 'OFERTA',        color: 'bg-red-500'     },
-  { label: 'MÁS VENDIDO',   color: 'bg-blue-500'    },
-  { label: 'PREMIUM',       color: 'bg-purple-500'  },
-  { label: 'LIQUIDACIÓN',   color: 'bg-emerald-500' },
-  { label: 'NUEVO PRECIO',  color: 'bg-sky-500'     },
-  { label: 'STOCK LIMITADO',color: 'bg-red-600'     },
-  { label: 'TOP VENTAS',    color: 'bg-[#FF6B35]'   },
-  { label: 'OFERTA FLASH',  color: 'bg-pink-500'    },
-  { label: 'IMPERDIBLE',    color: 'bg-amber-500'   },
+  { label: 'OFERTA',         color: 'bg-red-500' },
+  { label: 'MÁS VENDIDO',    color: 'bg-blue-500' },
+  { label: 'IMPERDIBLE',     color: 'bg-amber-500' },
+  { label: 'NUEVO PRECIO',   color: 'bg-sky-500' },
+  { label: 'TOP VENTAS',     color: 'bg-[#FF6B35]' },
+  { label: 'LIQUIDACIÓN',    color: 'bg-emerald-500' },
+  { label: 'PREMIUM',        color: 'bg-purple-500' },
+  { label: 'OFERTA FLASH',   color: 'bg-pink-500' },
+  { label: 'STOCK LIMITADO', color: 'bg-red-600' },
 ]
 
-const DESCUENTOS = [15, 17, 18, 20, 22, 24, 25]
+const DESCUENTOS = [15, 18, 19, 20, 22, 24, 25, 28, 30]
 
-const CATEGORIAS_OFERTA = ['Amoladoras', 'Taladros', 'Soldadura', 'Compresores', 'Sierras', 'Lijadoras', 'Atornilladores']
+function datosOferta(producto) {
+  const idx        = producto.id % BADGES.length
+  const dIdx       = producto.id % DESCUENTOS.length
+  const descuento  = DESCUENTOS[dIdx]
+  const precio     = Number(producto.precio)
+  const precioAnterior = Math.round(precio / (1 - descuento / 100))
+  return { badge: BADGES[idx].label, badgeColor: BADGES[idx].color, descuento, precio, precioAnterior }
+}
 
 function formatPesos(n) {
   return Number(n).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 })
 }
 
-function OfertaCard({ oferta, onAgregar }) {
+function OfertaCard({ producto, onAgregar }) {
   const [agregado, setAgregado] = useState(false)
+  const { badge, badgeColor, descuento, precio, precioAnterior } = datosOferta(producto)
 
   const handleAgregar = () => {
     if (agregado) return
-    onAgregar?.(oferta.producto)
+    onAgregar?.(producto)
     setAgregado(true)
     setTimeout(() => setAgregado(false), 1800)
   }
@@ -37,39 +45,40 @@ function OfertaCard({ oferta, onAgregar }) {
     <div className="w-64 shrink-0 bg-white rounded-2xl overflow-hidden shadow-md border border-gray-200 flex flex-col group hover:shadow-xl hover:border-[#FF6B35]/40 transition-all duration-300">
       <div className="relative h-48 bg-white overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-[#FF6B35]/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-10 pointer-events-none" />
-        {oferta.producto.imagenUrl ? (
+        {producto.imagenUrl ? (
           <img
-            src={oferta.producto.imagenUrl}
-            alt=""
+            src={producto.imagenUrl}
+            alt={producto.nombre}
             className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
-            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling?.style && (e.target.nextSibling.style.display = 'flex') }}
+            onError={(e) => { e.target.style.display = 'none' }}
           />
-        ) : null}
-        <div className={`w-full h-full ${oferta.producto.imagenUrl ? 'hidden' : 'flex'} items-center justify-center text-gray-200`}>
-          <Package size={40} />
-        </div>
-        <span className={`absolute top-3 left-3 ${oferta.badge.color} text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider z-20`}>
-          {oferta.badge.label}
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-200">
+            <ShoppingCart size={40} />
+          </div>
+        )}
+        <span className={`absolute top-3 left-3 ${badgeColor} text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider z-20`}>
+          {badge}
         </span>
         <div className="absolute top-3 right-3 w-10 h-10 bg-white rounded-full shadow-md flex flex-col items-center justify-center z-20">
           <span className="text-[9px] font-bold text-gray-400 leading-none">OFF</span>
-          <span className="text-sm font-black text-[#FF6B35] leading-none">{oferta.descuento}%</span>
+          <span className="text-sm font-black text-[#FF6B35] leading-none">{descuento}%</span>
         </div>
       </div>
 
       <div className="p-4 flex flex-col flex-1">
-        <p className="text-[10px] font-bold text-[#FF6B35] uppercase tracking-widest mb-1">{oferta.producto.nombreCategoria}</p>
-        <h3 className="text-sm font-semibold text-[#1A1A2E] line-clamp-2 min-h-[2.5rem] mb-3 flex-1">{oferta.producto.nombre}</h3>
+        <p className="text-[10px] font-bold text-[#FF6B35] uppercase tracking-widest mb-1">{producto.nombreCategoria}</p>
+        <h3 className="text-sm font-semibold text-[#1A1A2E] line-clamp-2 min-h-[2.5rem] mb-3 flex-1">{producto.nombre}</h3>
         <div className="flex items-end gap-2 mb-2">
-          <span className="text-xl font-black text-[#1A1A2E]">{formatPesos(oferta.producto.precio)}</span>
-          <span className="text-xs text-gray-400 line-through mb-0.5">{formatPesos(oferta.precioAnterior)}</span>
+          <span className="text-xl font-black text-[#1A1A2E]">{formatPesos(precio)}</span>
+          <span className="text-xs text-gray-400 line-through mb-0.5">{formatPesos(precioAnterior)}</span>
         </div>
       </div>
 
       <div>
         <div className="px-4 py-1.5 text-center bg-[#FF6B35]/10">
           <span className="text-[#FF6B35] text-xs font-semibold">
-            Ahorrás {formatPesos(oferta.precioAnterior - oferta.producto.precio)}
+            Ahorrás {formatPesos(precioAnterior - precio)}
           </span>
         </div>
         <motion.button
@@ -102,42 +111,36 @@ function OfertaCard({ oferta, onAgregar }) {
 }
 
 export default function OfertasSemanales({ onAgregar }) {
-  const [ofertas, setOfertas] = useState([])
+  const [productos, setProductos] = useState([])
 
   useEffect(() => {
-    async function cargar() {
-      try {
-        // Cargar productos de varias categorías y tomar los primeros de cada una
-        const resultados = await Promise.allSettled(
-          CATEGORIAS_OFERTA.map((cat) =>
-            axiosClient.get('/categorias/productos', { params: { categoria: cat, page: 0, size: 2 } })
-          )
-        )
+    productoService.listarPublico()
+      .then((lista) => {
+        const conStock = lista.filter((p) => p.stockActual > 0)
 
-        const productos = resultados
-          .filter((r) => r.status === 'fulfilled')
-          .flatMap((r) => r.value.data.contenido ?? [])
-          .filter((p) => p.disponibilidad !== 'SIN STOCK')
-          .slice(0, 10)
-
-        const ofertasConDescuento = productos.map((producto, i) => {
-          const descuento = DESCUENTOS[i % DESCUENTOS.length]
-          const badge = BADGES[i % BADGES.length]
-          const precioAnterior = Math.round(producto.precio / (1 - descuento / 100))
-          return { producto, descuento, badge, precioAnterior }
+        // Una muestra distribuida por categoría (máx. 1 por cat, hasta 10)
+        const porCategoria = {}
+        conStock.forEach((p) => {
+          if (!porCategoria[p.nombreCategoria]) porCategoria[p.nombreCategoria] = []
+          porCategoria[p.nombreCategoria].push(p)
         })
-
-        setOfertas(ofertasConDescuento)
-      } catch {
-        // silencioso si falla
-      }
-    }
-    cargar()
+        const cats = Object.values(porCategoria)
+        const muestra = []
+        let i = 0
+        while (muestra.length < 10 && i < cats.length * 3) {
+          const cat = cats[i % cats.length]
+          const idx = Math.floor(i / cats.length)
+          if (cat[idx]) muestra.push(cat[idx])
+          i++
+        }
+        setProductos(muestra)
+      })
+      .catch(() => {})
   }, [])
 
-  if (ofertas.length === 0) return null
+  const duplicados = [...productos, ...productos]
 
-  const duplicadas = [...ofertas, ...ofertas]
+  if (productos.length === 0) return null
 
   return (
     <section id="productos" className="py-20 bg-[#F8F9FA] overflow-hidden">
@@ -164,9 +167,10 @@ export default function OfertasSemanales({ onAgregar }) {
       <div className="relative">
         <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#F8F9FA] to-transparent z-10 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#F8F9FA] to-transparent z-10 pointer-events-none" />
+
         <div className="flex gap-5 w-max animate-marquee-slow hover:[animation-play-state:paused]">
-          {duplicadas.map((oferta, i) => (
-            <OfertaCard key={i} oferta={oferta} onAgregar={onAgregar} />
+          {duplicados.map((p, i) => (
+            <OfertaCard key={`${p.id}-${i}`} producto={p} onAgregar={onAgregar} />
           ))}
         </div>
       </div>

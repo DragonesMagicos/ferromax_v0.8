@@ -21,7 +21,8 @@ axiosClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('ferromax_token')
-      window.location.href = '/login'
+      const enTienda = window.location.pathname.startsWith('/tienda')
+      window.location.href = enTienda ? '/tienda/login' : '/admin/login'
     }
     return Promise.reject(error)
   },

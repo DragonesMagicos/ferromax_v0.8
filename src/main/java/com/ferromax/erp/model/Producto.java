@@ -30,6 +30,11 @@ public class Producto {
     @Column(columnDefinition = "BIGSERIAL")
     private Long id;
 
+    // Optimistic lock: detecta escrituras concurrentes si el lock pesimista falla por timeout
+    @Version
+    @Column(nullable = false)
+    private Long version = 0L;
+
     @NotBlank
     @Size(max = 50)
     @Column(nullable = false, unique = true, length = 50)

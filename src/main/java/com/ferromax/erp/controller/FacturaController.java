@@ -48,8 +48,7 @@ public class FacturaController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        Page<FacturaIngresoResumenDTO> resultado = facturaService.listar(page, size)
-                .map(FacturaIngresoResumenDTO::from);
+        Page<FacturaIngresoResumenDTO> resultado = facturaService.listar(page, size);
 
         return ResponseEntity.ok(Map.of(
                 "content", resultado.getContent(),

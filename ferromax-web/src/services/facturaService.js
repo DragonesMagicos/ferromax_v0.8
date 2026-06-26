@@ -11,8 +11,8 @@ const facturaService = {
     return data
   },
 
-  async confirmar({ items, notas, facturaId, proveedor, nroFactura }) {
-    const { data } = await api.post('/facturas/confirmar', { items, notas, facturaId, proveedor, nroFactura })
+  async confirmar({ items, notas, facturaId, proveedor, nroFactura, proveedorId, cuitProveedor }) {
+    const { data } = await api.post('/facturas/confirmar', { items, notas, facturaId, proveedor, nroFactura, proveedorId, cuitProveedor })
     return data
   },
 

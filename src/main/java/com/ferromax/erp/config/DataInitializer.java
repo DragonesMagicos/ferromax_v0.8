@@ -175,9 +175,9 @@ public class DataInitializer implements CommandLineRunner {
         );
 
         // ── Alertas para productos con stock bajo ─────────────────────────────
-        alertaStockRepository.save(alertaCritica(p5, admin));
-        alertaStockRepository.save(alertaCritica(p7, admin));
-        alertaStockRepository.save(alertaCritica(p9, admin));
+        alertaStockRepository.save(alertaCritica(p5));
+        alertaStockRepository.save(alertaCritica(p7));
+        alertaStockRepository.save(alertaCritica(p9));
 
         log.info("✅ Datos iniciales de Ferromax cargados correctamente (12 productos con imágenes)");
     }
@@ -217,16 +217,11 @@ public class DataInitializer implements CommandLineRunner {
         return c;
     }
 
-    private AlertaStock alertaCritica(Producto producto, Usuario usuario) {
+    private AlertaStock alertaCritica(Producto producto) {
         AlertaStock alerta = new AlertaStock();
-
         alerta.setProducto(producto);
         alerta.setAlertaEnum("STOCK_CRITICO");
         alerta.setLida(false);
-
-        // ESTA ES LA LÍNEA QUE FALTA
-        alerta.setGeneradaPor(usuario);
-
         return alerta;
     }
 }

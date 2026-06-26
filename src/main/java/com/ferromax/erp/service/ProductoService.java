@@ -16,11 +16,24 @@ import com.ferromax.erp.repository.MovimientoStockRepository;
 import com.ferromax.erp.repository.ProductoRepository;
 import com.ferromax.erp.repository.ProveedorRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProductoService {
@@ -36,6 +49,74 @@ public class ProductoService {
         return productoRepository.findAllByActivoTrue()
                 .stream()
                 .map(this::toDTO)
+                .toList();
+    }
+
+    public List<String> buscarImagenes(String query) {
+        List<String> urls = new ArrayList<>();
+        try {
+            String q = URLEncoder.encode(query + " ferreteria producto", StandardCharsets.UTF_8);
+            HttpClient client = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .build();
+
+            // Paso 1: obtener el token vqd de DuckDuckGo
+            HttpRequest req1 = HttpRequest.newBuilder()
+                .uri(URI.create("https://duckduckgo.com/?q=" + q + "&ia=images"))
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                .GET().build();
+            String html = client.send(req1, HttpResponse.BodyHandlers.ofString()).body();
+
+            Matcher vqdMatcher = Pattern.compile("vqd=['\"](\\d+-\\d+(?:-\\d+)?)").matcher(html);
+            if (!vqdMatcher.find()) {
+                // fallback: buscar en formato alternativo
+                vqdMatcher = Pattern.compile("vqd=([\\d-]+)").matcher(html);
+                if (!vqdMatcher.find()) return urls;
+            }
+            String vqd = vqdMatcher.group(1);
+
+            // Paso 2: buscar imágenes
+            HttpRequest req2 = HttpRequest.newBuilder()
+                .uri(URI.create("https://duckduckgo.com/i.js?q=" + q + "&vqd=" + vqd + "&o=json&p=1&f=,,,,,"))
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                .header("Referer", "https://duckduckgo.com/")
+                .GET().build();
+            String json = client.send(req2, HttpResponse.BodyHandlers.ofString()).body();
+
+            // Extraer URLs de "image":"..." del JSON
+            Matcher imgMatcher = Pattern.compile("\"image\":\"(https?://[^\"]+)\"").matcher(json);
+            while (imgMatcher.find() && urls.size() < 4) {
+                String url = imgMatcher.group(1);
+                // Filtrar imágenes muy pequeñas (thumbnails de 1px, etc.)
+                if (!url.contains("1x1") && !url.contains("pixel") && url.matches(".*\\.(jpg|jpeg|png|webp)(\\?.*)?")) {
+                    urls.add(url);
+                }
+            }
+            // Si no encontró con extensión, agregar sin filtro de extensión
+            if (urls.isEmpty()) {
+                imgMatcher.reset();
+                while (imgMatcher.find() && urls.size() < 4) {
+                    urls.add(imgMatcher.group(1));
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Error al buscar imágenes DuckDuckGo: {}", e.getMessage());
+        }
+        return urls;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> buscarPorTexto(String q, int limit) {
+        return productoRepository.buscarPorNombreOSku(q.trim(), PageRequest.of(0, limit))
+                .stream()
+                .map(p -> {
+                    Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("id", p.getId());
+                    m.put("nombre", p.getNombre());
+                    m.put("sku", p.getSku());
+                    m.put("activo", p.getActivo());
+                    return m;
+                })
                 .toList();
     }
 
@@ -130,6 +211,31 @@ public class ProductoService {
     public ProductoEmpleadoDTO buscarPorCodigoBarrasParaEmpleado(String codigo) {
         return toEmpleadoDTO(productoRepository.findByCodigoBarras(codigo)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Producto", "codigoBarras", codigo)));
+    }
+
+    @Transactional
+    public ProductoEmpleadoDTO crearRapidoDesdeRecepcion(ProductoRapidoRequest request) {
+        // SKU: si no se provee, usar el código de barras
+        String sku = (request.sku() != null && !request.sku().isBlank())
+                ? request.sku().toUpperCase()
+                : request.codigoBarras().toUpperCase();
+
+        if (productoRepository.findBySku(sku).isPresent()) {
+            throw new IllegalArgumentException("Ya existe un producto con SKU: " + sku);
+        }
+
+        Producto producto = new Producto();
+        producto.setSku(sku);
+        producto.setCodigoBarras(request.codigoBarras());
+        producto.setNombre(request.nombre());
+        producto.setDescripcion(request.descripcion());
+        producto.setPrecio(java.math.BigDecimal.ZERO); // precio a definir por admin
+        producto.setStockActual(0);
+        producto.setStockMinimo(0);
+        producto.setImagenUrl(request.imagenUrl());
+        producto.setActivo(true);
+
+        return toEmpleadoDTO(productoRepository.save(producto));
     }
 
     @Transactional(readOnly = true)

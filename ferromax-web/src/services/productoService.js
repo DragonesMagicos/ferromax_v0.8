@@ -7,6 +7,16 @@ const productoService = {
     return data
   },
 
+  async buscar(q, limit = 8) {
+    const { data } = await api.get(`/productos/buscar?q=${encodeURIComponent(q)}&limit=${limit}`)
+    return data
+  },
+
+  async buscarImagenes(q) {
+    const { data } = await api.get(`/productos/imagenes?q=${encodeURIComponent(q)}`)
+    return data
+  },
+
   async buscarPorSku(sku) {
     const { data } = await api.get(`/productos/sku/${sku}`)
     return data

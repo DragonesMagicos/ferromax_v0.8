@@ -4,11 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Package, RefreshCw, ChevronLeft, ChevronRight, Filter, X, ShoppingCart } from 'lucide-react'
 import NavbarPublico from '../components/NavbarPublico'
 import CarritoDrawer from '../components/tienda/CarritoDrawer'
-import PagoModal from '../components/tienda/PagoModal'
 import catalogoService from '../services/catalogoService'
 import pedidoService from '../services/pedidoService'
-import { useCarrito } from '../context/CarritoContext'
 import { useAuth } from '../context/AuthContext'
+import toast from 'react-hot-toast'
 
 const DISP_CONFIG = {
   'STOCK ALTO':  { label: 'Stock alto',  bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
@@ -226,17 +225,76 @@ export default function CatalogoCategoria() {
   const nombreCategoria = decodeURIComponent(categoria ?? '')
   const navigate = useNavigate()
   const { usuario } = useAuth()
-  const { carrito, drawerAbierto, setDrawerAbierto, agregarAlCarrito, cambiarCantidad, eliminarItem, limpiarCarrito, totalItems } = useCarrito()
-  const [modalPagoAbierto, setModalPagoAbierto] = useState(false)
 
   const [pagina, setPagina]           = useState({ contenido: [], paginaActual: 0, totalPaginas: 0, totalElementos: 0 })
   const [subcats, setSubcats]         = useState([])
   const [subcatActiva, setSubcatActiva] = useState(null)
-
   const [paginaActual, setPaginaActual] = useState(0)
   const [cargando, setCargando]       = useState(true)
   const [error, setError]             = useState(false)
   const [filtrosMovil, setFiltrosMovil] = useState(false)
+
+  const [carrito, setCarrito] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ferromax_carrito') || '[]') } catch { return [] }
+  })
+  const [drawerAbierto, setDrawerAbierto] = useState(false)
+  const [pagando, setPagando] = useState(false)
+
+  useEffect(() => {
+    localStorage.setItem('ferromax_carrito', JSON.stringify(carrito))
+  }, [carrito])
+
+  const totalItems = carrito.reduce((acc, i) => acc + i.cantidad, 0)
+
+  const agregarAlCarrito = useCallback((producto) => {
+    setCarrito((prev) => {
+      const existe = prev.find((i) => i.producto.id === producto.id)
+      if (existe) return prev.map((i) =>
+        i.producto.id === producto.id
+          ? { ...i, cantidad: i.cantidad + 1, subtotal: (i.cantidad + 1) * Number(i.producto.precio) }
+          : i
+      )
+      return [...prev, { producto, cantidad: 1, subtotal: Number(producto.precio) }]
+    })
+    toast.success(`${producto.nombre} agregado al carrito`, {
+      style: { borderRadius: '12px', background: '#1A1A2E', color: '#fff' },
+      iconTheme: { primary: '#FF6B35', secondary: '#fff' },
+    })
+    setDrawerAbierto(true)
+  }, [])
+
+  const cambiarCantidad = useCallback((productoId, nuevaCantidad) => {
+    if (nuevaCantidad <= 0) { setCarrito((prev) => prev.filter((i) => i.producto.id !== productoId)); return }
+    setCarrito((prev) => prev.map((i) =>
+      i.producto.id === productoId
+        ? { ...i, cantidad: nuevaCantidad, subtotal: nuevaCantidad * Number(i.producto.precio) }
+        : i
+    ))
+  }, [])
+
+  const eliminarItem = useCallback((productoId) => {
+    setCarrito((prev) => prev.filter((i) => i.producto.id !== productoId))
+  }, [])
+
+  const handlePagar = async () => {
+    if (!usuario) {
+      setDrawerAbierto(false)
+      navigate('/tienda/login', { state: { comprarDespues: true } })
+      return
+    }
+    setPagando(true)
+    try {
+      await pedidoService.crear(carrito)
+      setCarrito([])
+      localStorage.removeItem('ferromax_carrito')
+      setDrawerAbierto(false)
+      navigate('/tienda/confirmacion')
+    } catch (err) {
+      toast.error(err.response?.data?.mensaje ?? 'Error al procesar el pedido')
+    } finally {
+      setPagando(false)
+    }
+  }
 
   // Cargar subcategorías de la categoría desde el endpoint de categorías
   useEffect(() => {
@@ -273,7 +331,7 @@ export default function CatalogoCategoria() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA]" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <NavbarPublico />
+      <NavbarPublico carritoCount={totalItems} onAbrirCarrito={() => setDrawerAbierto(true)} />
 
       <main className="pt-[72px]">
         {/* Breadcrumb + Header */}
@@ -415,17 +473,6 @@ export default function CatalogoCategoria() {
         © 2026 Ferromax S.R.L. — Todos los derechos reservados.
       </footer>
 
-      {/* Botón flotante del carrito */}
-      {totalItems > 0 && (
-        <button
-          onClick={() => setDrawerAbierto(true)}
-          className="fixed bottom-6 right-6 z-40 bg-[#FF6B35] hover:bg-[#e55a2b] text-white rounded-full shadow-lg px-5 py-3 flex items-center gap-2 font-semibold text-sm transition-colors"
-        >
-          <ShoppingCart size={18} />
-          Ver carrito ({totalItems})
-        </button>
-      )}
-
       <AnimatePresence>
         {drawerAbierto && (
           <CarritoDrawer
@@ -433,27 +480,8 @@ export default function CatalogoCategoria() {
             onCerrar={() => setDrawerAbierto(false)}
             onCambiarCantidad={cambiarCantidad}
             onEliminar={eliminarItem}
-            onPagar={() => {
-              if (!usuario) { setDrawerAbierto(false); navigate('/tienda/login'); return }
-              setDrawerAbierto(false)
-              setModalPagoAbierto(true)
-            }}
-            pagando={false}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {modalPagoAbierto && (
-          <PagoModal
-            total={carrito.reduce((a, i) => a + i.subtotal, 0)}
-            onCerrar={() => { setModalPagoAbierto(false); setDrawerAbierto(true) }}
-            onProcesar={(medioPago) => pedidoService.crear(carrito, medioPago)}
-            onPagoExitoso={() => {
-              setModalPagoAbierto(false)
-              limpiarCarrito()
-              navigate('/tienda/confirmacion')
-            }}
+            onPagar={handlePagar}
+            pagando={pagando}
           />
         )}
       </AnimatePresence>

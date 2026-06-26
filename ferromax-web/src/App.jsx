@@ -1,9 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
-import { CarritoProvider } from './context/CarritoContext'
 import ProtectedRoute from './components/PrivateRoute'
-import LoginPage from './pages/LoginPage'
+import AdminLoginPage from './pages/AdminLoginPage'
 import DashboardPage from './pages/DashboardPage'
 import Productos from './pages/Productos'
 import Ventas from './pages/Ventas'
@@ -12,6 +11,8 @@ import RecepcionPage from './pages/RecepcionPage'
 import RemitosPage from './pages/RemitosPage'
 import AjusteStockPage from './pages/AjusteStockPage'
 import IngresoFacturaPage from './pages/IngresoFacturaPage'
+import ProveedoresPage from './pages/ProveedoresPage'
+import ClientesPage from './pages/ClientesPage'
 import Tienda from './pages/Tienda'
 import TiendaLogin from './pages/TiendaLogin'
 import TiendaConfirmacion from './pages/TiendaConfirmacion'
@@ -24,10 +25,10 @@ export default function App() {
     <>
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <AuthProvider>
-      <CarritoProvider>
         <Routes>
           {/* Rutas públicas */}
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/login" element={<Navigate to="/admin/login" replace />} />
           <Route path="/tienda" element={<Tienda />} />
           <Route path="/tienda/login" element={<TiendaLogin />} />
           <Route path="/tienda/confirmacion" element={<TiendaConfirmacion />} />
@@ -49,6 +50,16 @@ export default function App() {
           <Route path="/ingreso-factura" element={
             <ProtectedRoute requiereAdmin>
               <IngresoFacturaPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/proveedores" element={
+            <ProtectedRoute requiereAdmin>
+              <ProveedoresPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/clientes" element={
+            <ProtectedRoute requiereAdmin>
+              <ClientesPage />
             </ProtectedRoute>
           } />
           <Route path="/" element={
@@ -82,7 +93,6 @@ export default function App() {
           {/* Fallback: ADMIN → dashboard, EMPLEADO → POS */}
           <Route path="*" element={<Navigate to="/pos" replace />} />
         </Routes>
-      </CarritoProvider>
       </AuthProvider>
     </>
   )
